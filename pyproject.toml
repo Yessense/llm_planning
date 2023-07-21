@@ -7,9 +7,14 @@ readme = "README.md"
 packages = [{include = "llm_planning"}]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = ">=3.8,<3.12"
+transformers = "^4.31.0"
 wandb = "^0.15.5"
-
+torch = {url = "https://download.pytorch.org/whl/cu117_pypi_cudnn/torch-2.0.0%2Bcu117.with.pypi.cudnn-cp38-cp38-linux_x86_64.whl"}
+accelerate = "^0.21.0"
+sentencepiece = "^0.1.99"
+bitsandbytes = "^0.40.2"
+scipy = "1.10"
 
 [build-system]
 requires = ["poetry-core"]
