@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 import sys
 
 
-class PlanningLogger(ABC):
+class BaseLogger(ABC):
     _name: str
 
     @property
@@ -24,7 +24,7 @@ class PlanningLogger(ABC):
         raise NotImplementedError
 
 
-class WandbLogger(PlanningLogger):
+class WandbLogger(BaseLogger):
     _LOG_FILENAME: str = 'run.log'
     _name: str = 'WandbLogger'
 

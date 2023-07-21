@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Optional
 import torch
 
-from llm_planning.infrastructure.logger import PlanningLogger
+from llm_planning.infrastructure.logger import BaseLogger
 
 
 class BaseInput(ABC):
@@ -14,7 +14,7 @@ class BaseInput(ABC):
 class BaseLLMModel(ABC):
     """ Base class for LLM models"""
     _name: str
-    _logger: PlanningLogger
+    _logger: BaseLogger
 
     @property
     def name(self):
@@ -22,7 +22,7 @@ class BaseLLMModel(ABC):
 
     def __init__(self, 
                  name: str,
-                 logger: PlanningLogger,
+                 logger: BaseLogger,
                  **kwargs) -> None:
         self._name = name
         self._logger = logger
