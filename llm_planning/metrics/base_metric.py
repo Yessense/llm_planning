@@ -21,16 +21,21 @@ class BaseMetric(ABC):
     """Base class for calculating metrics"""
     _name: str
 
+    def name(self):
+        return self._name
+
     @abstractmethod
     def __init__(self,
                  pred_process_f: Optional[Callable] = None,
                  target_process_f: Optional[Callable] = None,
+                 name: str = "",
                  **kwargs):
         self._pred_process_f = pred_process_f
         self._target_process_f = pred_process_f
+        self._name = name
+        self.__call__ = preprocess(self.__call__)
     
     @abstractmethod
-    @preprocess
     def __call__(self,
                  pred: Any,
                  target: Any) -> float:
