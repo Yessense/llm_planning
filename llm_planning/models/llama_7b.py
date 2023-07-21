@@ -1,6 +1,7 @@
 import torch
+
 from llm_planning.infrastructure.logger import WandbLogger
-from llm_planning.models.base_model import BaseLLMModel
+from llm_planning.models.base_model import BaseInput, BaseLLMModel
 from transformers import AutoModelForCausalLM, LlamaTokenizer
 from transformers import pipeline
 
@@ -43,13 +44,12 @@ class LLAMA7B(BaseLLMModel):
                                             model=self.model,
                                             tokenizer=self.tokenizer)
 
-    def generate(self, prompt):
+    def generate(self, inputs: BaseInput, **kwargs) -> str:
         # generate plan
-        output = self.generation_pipeline(prompt,
+        output = self.generation_pipeline(inputs.text,
                                           do_sample=False,
                                           return_full_text=False,
                                           max_new_tokens=self.max_new_tokens)
-
         return output[0]['generated_text']
 
 if __name__ == "__main__":

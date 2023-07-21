@@ -1,7 +1,13 @@
 from abc import ABC, abstractmethod
 from typing import Any, Optional
+import torch
 
 from llm_planning.infrastructure.logger import PlanningLogger
+
+
+class BaseInput(ABC):
+    text: Optional[str] = None
+    image: Optional[torch.Tensor] = None
 
 
     
@@ -14,7 +20,7 @@ class BaseLLMModel(ABC):
     def name(self):
         return self._name
 
-    def __init__(self,
+    def __init__(self, 
                  name: str,
                  logger: PlanningLogger,
                  **kwargs) -> None:
@@ -34,7 +40,7 @@ class BaseLLMModel(ABC):
     #     pass
 
     @abstractmethod
-    def generate(self, prompt: str, **kwargs) -> str:
+    def generate(self, inputs: BaseInput, **kwargs) -> str:
         """ Generate text"""
         pass
 
