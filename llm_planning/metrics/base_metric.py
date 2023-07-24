@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Callable, Dict, List, Optional, Union
+from llm_planning.datasets.base_dataset import BaseTask
 
-from llm_planning.envs.base_env import BaseTask
 from llm_planning.infrastructure.logger import BaseLogger, WandbLogger
 from llm_planning.processors.base_processor import BaseProcessor
 
@@ -12,7 +12,7 @@ def preprocess(func):
             pred = self._pred_process_f(pred)
         if self._target_process_f is not None:
             target = self._target_process_f(target)
-        return func(pred, target) 
+        return func(self, pred, target) 
         
     return wrapper
 
@@ -33,7 +33,6 @@ class BaseMetric(ABC):
         self._pred_process_f = pred_process_f
         self._target_process_f = pred_process_f
         self._name = name
-        self.__call__ = preprocess(self.__call__)
     
     @abstractmethod
     def __call__(self,

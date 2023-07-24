@@ -7,6 +7,7 @@ from llm_planning.datasets.strl_robotics import STRLDataset
 from llm_planning.gen_methods.full_plan_generation import FullPlanGeneration
 from llm_planning.infrastructure.logger import WandbLogger
 from torch.utils.data import Subset, random_split
+from llm_planning.metrics.lcs import LCSMetrics
 from llm_planning.models.llama_7b import LLAMA7B
 
 from hydra.core.config_store import ConfigStore
@@ -49,12 +50,22 @@ def run(cfg=LLMPlanningConfig) -> None:
     gen_method = FullPlanGeneration(logger=logger,
                                     processor=processor,
                                     model=model)
+    lcs_metrics = LCSMetrics(logger=logger,
+                             processor=processor)
 
-    for gt_task in train_split:
+    for i, gt_task in enumerate(train_split):
+        gt_task.text = processor._steps_to_text(gt_task.steps)
         predicted_task = gen_method.predict(gt_task)
+        metrics = lcs_metrics.update(predicted_task=predicted_task,
+                           target_task=gt_task)
         logger.info(f"Goal:           {gt_task.goal}")
         logger.info(f"GT plan:        {processor._steps_to_text(gt_task.steps)}")
-        logger.info(f"Predicted plan: {predicted_task.text}\n\n")
+        logger.info(f"Predicted plan: {predicted_task.text}")
+        logger.info(f"Metrics:        {metrics}\n\n")
+
+    total_metrics = lcs_metrics.calculate_metrics()
+    logger.info(f"Total_metrics:  {total_metrics}")
+    logger.info(f"Done.")
 
 
 if __name__ == "__main__":

@@ -50,7 +50,9 @@ class STRLProcessor(BaseProcessor):
     
     def _task_to_prompt(self, task: STRLTask) -> str:
         prompt = self._goal_to_query(task.goal)
-        prompt += self._steps_to_text(task.steps)
+        text = self._steps_to_text(task.steps)
+        task.text = text
+        prompt += text
         return prompt
 
     def to_inputs(self, task: STRLTask) -> BaseInput:
