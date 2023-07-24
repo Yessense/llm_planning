@@ -1,1 +1,1 @@
-from .base_dataset import TaskDataset
+from .base_dataset import BaseTaskDataset

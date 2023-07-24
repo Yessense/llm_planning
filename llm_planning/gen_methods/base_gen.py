@@ -1,13 +1,13 @@
 from abc import ABC, abstractmethod
 from typing import Any
-from llm_planning.envs.base_env import BaseTask
+from llm_planning.datasets.base_dataset import BaseTask
 from llm_planning.infrastructure.logger import BaseLogger
 
 from llm_planning.models.base_model import BaseLLMModel
 from llm_planning.processors.base_processor import BaseProcessor
 
 
-class BasePlanGenerationMethod(ABC):
+class BasePlanGeneration(ABC):
     """ Base class for plan generation methods. """
 
     def __init__(self,
@@ -16,7 +16,7 @@ class BasePlanGenerationMethod(ABC):
                  logger: BaseLogger,
                  **kwargs):
         self._model = model
-        self._prompt_builder = processor
+        self._processor = processor
         self._logger = logger
         self.setup()
 

@@ -36,7 +36,7 @@ class WandbLogger(BaseLogger):
                  log_to_stdout: bool = False):
         super().__init__(log_dir, self._LOG_FILENAME)
         logging.basicConfig(filename=self._LOG_FILENAME if self._log_filename is None else self._log_filename,
-                            filemode='a')
+                            filemode='w')
         self._logger = logging.getLogger(self._name)
         self._logger.setLevel(logging.DEBUG)
 

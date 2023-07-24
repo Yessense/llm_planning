@@ -1,7 +1,7 @@
 import torch
 
 from llm_planning.infrastructure.logger import WandbLogger
-from llm_planning.models.base_model import BaseInput, BaseLLMModel
+from llm_planning.models.base_model import BaseInput, BaseLLMModel, BaseOutput
 from transformers import AutoModelForCausalLM, LlamaTokenizer
 from transformers import pipeline
 
@@ -16,7 +16,7 @@ class LLAMA7B(BaseLLMModel):
                  logger: WandbLogger,
                  device: int = 2,
                  name: str = 'llama_7b') -> None:
-        self.max_new_tokens = 45
+        self.max_new_tokens = 100
         self.device = device
         super().__init__(name=name, logger=logger)
         # self.logger.info(f"Device map: \n{pprint.pformat(device_map)}")
@@ -44,13 +44,14 @@ class LLAMA7B(BaseLLMModel):
                                             model=self.model,
                                             tokenizer=self.tokenizer)
 
-    def generate(self, inputs: BaseInput, **kwargs) -> str:
+    def generate(self, inputs: BaseInput, **kwargs) -> BaseOutput:
         # generate plan
         output = self.generation_pipeline(inputs.text,
                                           do_sample=False,
                                           return_full_text=False,
                                           max_new_tokens=self.max_new_tokens)
-        return output[0]['generated_text']
+        output = BaseOutput(output[0]['generated_text'])
+        return output
 
 if __name__ == "__main__":
     wandb_logger = WandbLogger(log_filename=None)
