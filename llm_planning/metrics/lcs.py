@@ -52,13 +52,23 @@ class LCSMetrics(BaseTaskMetrics):
         super().__init__(logger, processor, **kwargs)
         # TODO: Fix this
         # Add metric functions
-        def to_text(task):
-            return [task.text]
+        # def to_text(task):
+        #     return [task.text]
+        def to_action_list(task):
+            return [step.action for step in task.steps ]
+        
+        def to_step_list(task):
+            if len(task.steps):
+                task.text = processor._steps_to_text(task.steps)
+            
+            task.steps = processor._text_to_steps(task.text)
+            return [step.text for step in task.steps]
+            
 
-        a_lcs = LCS(to_text, to_text, 'A-LCS')
-        p_lcs = LCS(to_text, to_text, 'P-LCS')
-        pem = EM(to_text, to_text, 'PEM')
-        aem = EM(to_text, to_text, 'AEM')
+        a_lcs = LCS(to_action_list, to_action_list, 'A-LCS')
+        p_lcs = LCS(to_step_list, to_step_list, 'P-LCS')
+        pem = EM(to_step_list, to_step_list, 'PEM')
+        aem = EM(to_action_list, to_action_list, 'AEM')
         self._metric_list: List[BaseMetric] = [a_lcs, p_lcs, pem, aem]
         # Dict to save intermediate values
         self._metric_values: Dict = {metric_cls.name: 0. for metric_cls in self._metric_list}

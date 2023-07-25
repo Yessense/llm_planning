@@ -28,7 +28,7 @@ class STRLProcessor(BaseProcessor):
             prompt += self._task_to_prompt(task) + '\n'
 
         self._system_prompt = prompt
-        self._stop_step_pattern = re.compile(r'(\s*\d+\.\s*)*(.*?)(?=\.|,)')
+        self._stop_step_pattern = re.compile(r"(\s*\d+\.\s*)(\w+\(('[\w ]+'(,\s)?)*\))*")
         self._logger.info("Building system prompt...")
         self._logger.info("\n" + self._system_prompt)
 
@@ -61,16 +61,38 @@ class STRLProcessor(BaseProcessor):
         else:
             return BaseInput(text=self._system_prompt + self._goal_to_query(task.goal))
 
-    def cut_step_from_generated_text(self, generated_text: str) -> Optional[str]:
-        stop_match = self.stop_step_pattern.search(generated_text)
-
-        if stop_match is not None:
-            if stop_match.groups()[-1].isnumeric():
-                return None
-            else:
-                return stop_match.groups()[-1]
+    def _text_to_steps(self, task_text: str) -> List[Step]:
+        stop_match = self._stop_step_pattern.findall(task_text)
+        steps = []
+        if stop_match is  None:
+            return steps
         else:
+            for i in range(len(stop_match) - 1):
+                step_text = stop_match[i][1]
+                step = self._parse_action(step_text)
+                if step is not None:
+                    steps.append(step)
+            return steps
+                
+
+    def _parse_action(self, step_text: str) -> Optional[Step]:
+        """ Parse action with arguments to step.
+        text: put_on('pepper', 'white box')
+        action: put_on
+        arguments: ['pepper', 'white box']
+        """
+        step_decomposition_pattern = re.compile(r'\s*([A-Za-z_][A-Za-z_\s]+)')
+        arguments = step_decomposition_pattern.findall(step_text)
+
+        if arguments is None:
             return None
+        if len(arguments) == 1:
+            raise ValueError(f"Only one action without arguments {arguments}")
+        else:
+            step = Step(action=arguments[0],
+                        arguments=arguments[1:],
+                        text=step_text)
+            return step
 
     def to_task(self, task: BaseOutput) -> STRLTask:
         stop_match = self._stop_pattern.search(task.text)
@@ -79,8 +101,10 @@ class STRLProcessor(BaseProcessor):
             task.text=task.text[:stop_match.end() + 2].strip(' \n\t')
         else:
             task.text=task.text.strip(' \n\t')
+        
+        steps = self._text_to_steps(task_text=task.text)
 
-        return STRLTask(text=task.text)
+        return STRLTask(text=task.text, steps=steps)
         
 
 if __name__ == "__main__":

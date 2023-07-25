@@ -34,7 +34,7 @@ def run(cfg=LLMPlanningConfig) -> None:
 
     logger = WandbLogger(log_filename=cfg.log_filename,
                          log_dir=cfg.logging_dir,
-                         log_to_stdout=True)
+                         log_to_stdout=False)
 
     dataset = STRLDataset(cfg.dataset_path)
     train_split, example_split = random_split(
@@ -54,6 +54,7 @@ def run(cfg=LLMPlanningConfig) -> None:
                              processor=processor)
 
     for i, gt_task in enumerate(train_split):
+
         gt_task.text = processor._steps_to_text(gt_task.steps)
         predicted_task = gen_method.predict(gt_task)
         metrics = lcs_metrics.update(predicted_task=predicted_task,
@@ -62,8 +63,14 @@ def run(cfg=LLMPlanningConfig) -> None:
         logger.info(f"GT plan:        {processor._steps_to_text(gt_task.steps)}")
         logger.info(f"Predicted plan: {predicted_task.text}")
         logger.info(f"Metrics:        {metrics}\n\n")
+    # gt_task = train_split[-1]
+    # gt_task.text = processor._steps_to_text(gt_task.steps)
+    # predicted_task = gen_method.predict(gt_task)
+    # metrics = lcs_metrics.update(predicted_task=predicted_task,
+    #                     target_task=gt_task)
 
     total_metrics = lcs_metrics.calculate_metrics()
+    # total_metrics = {key: f'{value:0.3f}' for key, value in total_metrics.items()}
     logger.info(f"Total_metrics:  {total_metrics}")
     logger.info(f"Done.")
 

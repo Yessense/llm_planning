@@ -39,8 +39,20 @@ class STRLDataset(BaseTaskDataset):
         if len(self) == 0:
             raise ValueError("No data")
 
-        # for element in self._data:
-        #     steps = []
+        self.actions = set()
+        self.objects = set()
+        self.recepticles = set()
+
+        for item in self:
+            for step in item.steps:
+                self.actions.add(step.action)
+                if len(step.arguments) == 2:
+                    self.objects.add(step.arguments[0])
+                    self.recepticles.add(step.arguments[1])
+
+        print(self.actions)
+        print(self.objects)
+        print(self.recepticles)
         #     for i, step in enumerate(element['plan']):
         #         if step[0] == 'find':
         #             continue
