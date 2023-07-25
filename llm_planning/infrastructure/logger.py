@@ -34,7 +34,7 @@ class WandbLogger(BaseLogger):
                  run_name: str = 'run_name',
                  project_name: str = 'wandb_test_llm_planning',
                  log_to_stdout: bool = False):
-        super().__init__(log_dir, self._LOG_FILENAME)
+        super().__init__(log_dir, log_filename)
         logging.basicConfig(filename=self._LOG_FILENAME if self._log_filename is None else self._log_filename,
                             filemode='w')
         self._logger = logging.getLogger(self._name)
@@ -54,7 +54,7 @@ class WandbLogger(BaseLogger):
         self._logger.info(msg)
 
     def wandb_log(self, msg: Dict) -> None:
-        self._wandb_logger.log
+        self._wandb_logger.log(msg)
 
 
 if __name__ == "__main__":

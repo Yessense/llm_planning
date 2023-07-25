@@ -1,5 +1,5 @@
 import re
-from typing import List, Optional
+from typing import List, Optional, Union
 from llm_planning.datasets.strl_robotics import STRLDataset, STRLTask, Step
 from llm_planning.infrastructure.logger import BaseLogger
 from llm_planning.models.base_model import BaseInput, BaseOutput
@@ -13,22 +13,26 @@ class STRLProcessor(BaseProcessor):
     def system_prompt_is_set(self):
         return len(self._system_prompt)
 
-    def __init__(self, logger: BaseLogger) -> None:
-        super().__init__(logger=logger)
+    def is_terminating(self, step: Step):
+        return step.text == self.TERMINATING_STRING
+
+    def __init__(self, logger: BaseLogger, **kwargs) -> None:
+        super().__init__(logger=logger, **kwargs)
         self._system_prompt = ""
         self._stop_step_pattern = ""
-        self._stop_pattern = re.compile(f'\\d+\\. {self.TERMINATING_STRING}.') 
+        self._stop_pattern = re.compile(f'\\d+\\. {self.TERMINATING_STRING}.')
 
     def build_system_prompt(self, example_tasks: List[STRLTask]) -> str:
         prompt = "Robot: Hi there, I’m a robot operating in a house.\n"
         prompt += "Robot: You can ask me to do various tasks and "
         prompt += "I’ll tell you the sequence of actions I would do to accomplish your task.\n"
-        
+
         for task in example_tasks:
             prompt += self._task_to_prompt(task) + '\n'
 
         self._system_prompt = prompt
-        self._stop_step_pattern = re.compile(r"(\s*\d+\.\s*)(\w+\(('[\w ]+'(,\s)?)*\))*")
+        self._stop_step_pattern = re.compile(
+            r"(\s*\d+\.\s*)(\w+\(('[\w ]+'(,\s)?)*\))*")
         self._logger.info("Building system prompt...")
         self._logger.info("\n" + self._system_prompt)
 
@@ -41,13 +45,15 @@ class STRLProcessor(BaseProcessor):
         text = f'{step.action}({", ".join([repr(argument) for argument in step.arguments])})'
         return text
 
-    def _steps_to_text(self, steps: List[Step]) -> str:
-        text = ", ".join([f'{step_idx}. {self._step_to_text(step)}' 
+    def _steps_to_text(self,
+                       steps: List[Step],
+                       add_terminating_string: bool = True) -> str:
+        text = ", ".join([f'{step_idx}. {self._step_to_text(step)}'
                           for step_idx, step in enumerate(steps, start=1)])
-        text += f", {len(steps) + 1}. {self.TERMINATING_STRING}."
-
+        if add_terminating_string:
+            text += f", {len(steps) + 1}. {self.TERMINATING_STRING}."
         return text
-    
+
     def _task_to_prompt(self, task: STRLTask) -> str:
         prompt = self._goal_to_query(task.goal)
         text = self._steps_to_text(task.steps)
@@ -55,25 +61,38 @@ class STRLProcessor(BaseProcessor):
         prompt += text
         return prompt
 
-    def to_inputs(self, task: STRLTask) -> BaseInput:
+    def to_inputs(self,
+                  task: STRLTask,
+                  steps: Optional[List[Step]] = None) -> BaseInput:
         if not self.system_prompt_is_set:
-            raise ValueError("System prompt is not set. You need to set system prompt.")
+            raise ValueError(
+                "System prompt is not set. You need to set system prompt.")
         else:
-            return BaseInput(text=self._system_prompt + self._goal_to_query(task.goal))
+            text = self._system_prompt + self._goal_to_query(task.goal)
+            if steps is not None:
+                text += self._steps_to_text(steps,
+                                            add_terminating_string=False)
+            return BaseInput(text=text)
 
-    def _text_to_steps(self, task_text: str) -> List[Step]:
-        stop_match = self._stop_step_pattern.findall(task_text)
-        steps = []
-        if stop_match is  None:
-            return steps
+    def _text_to_steps(self, task_text: str, cut_one_step: bool = False) -> Union[List[Step], Step, None]:
+        if cut_one_step:
+            stop_match = self._stop_step_pattern.match(task_text)
+            if stop_match is None:
+                return None
+            else:
+                return self._parse_action(stop_match.group(2))
         else:
-            for i in range(len(stop_match) - 1):
-                step_text = stop_match[i][1]
-                step = self._parse_action(step_text)
-                if step is not None:
-                    steps.append(step)
-            return steps
-                
+            stop_match = self._stop_step_pattern.findall(task_text)
+            steps = []
+            if stop_match is None:
+                return steps
+            else:
+                for i in range(len(stop_match) - 1):
+                    step_text = stop_match[i][1]
+                    step = self._parse_action(step_text)
+                    if step is not None:
+                        steps.append(step)
+                return steps
 
     def _parse_action(self, step_text: str) -> Optional[Step]:
         """ Parse action with arguments to step.
@@ -87,25 +106,32 @@ class STRLProcessor(BaseProcessor):
         if arguments is None:
             return None
         if len(arguments) == 1:
-            raise ValueError(f"Only one action without arguments {arguments}")
+            step = Step(text=step_text)
         else:
             step = Step(action=arguments[0],
                         arguments=arguments[1:],
                         text=step_text)
             return step
 
-    def to_task(self, task: BaseOutput) -> STRLTask:
+
+    def to_task(self, task: Union[BaseOutput, List[Step]]) -> STRLTask:
+        # Autoregressive Mode
+        if isinstance(task, list):
+            return STRLTask(text=self._steps_to_text(task),
+                            steps=task)
+        
+        # Full plan generation mode
         stop_match = self._stop_pattern.search(task.text)
 
         if stop_match is not None:
-            task.text=task.text[:stop_match.end() + 2].strip(' \n\t')
+            task.text = task.text[:stop_match.end() + 2].strip(' \n\t')
         else:
-            task.text=task.text.strip(' \n\t')
-        
+            task.text = task.text.strip(' \n\t')
+
         steps = self._text_to_steps(task_text=task.text)
 
         return STRLTask(text=task.text, steps=steps)
-        
+
 
 if __name__ == "__main__":
     dataset = STRLDataset("data/plans.json")
@@ -114,4 +140,3 @@ if __name__ == "__main__":
     processor.build_system_prompt([dataset[0], dataset[3]])
 
     print(processor.to_inputs(dataset[1]))
-    

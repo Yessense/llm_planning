@@ -6,7 +6,7 @@ from llm_planning.models.base_model import BaseInput, BaseOutput
 
 
 class BaseProcessor(ABC):
-    def __init__(self, logger: BaseLogger):
+    def __init__(self, logger: BaseLogger, **kwargs):
         self._logger = logger
 
 

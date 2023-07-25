@@ -15,8 +15,9 @@ class LLAMA7B(BaseLLMModel):
     def __init__(self,
                  logger: WandbLogger,
                  device: int = 2,
-                 name: str = 'llama_7b') -> None:
-        self.max_new_tokens = 100
+                 name: str = 'llama_7b',
+                 max_new_tokens: int = 100) -> None:
+        self.max_new_tokens = max_new_tokens
         self.device = device
         super().__init__(name=name, logger=logger)
         # self.logger.info(f"Device map: \n{pprint.pformat(device_map)}")

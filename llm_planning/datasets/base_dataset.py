@@ -4,6 +4,8 @@ from typing import Any
 import torch
 from torch.utils.data import Dataset
 
+from llm_planning.infrastructure.logger import BaseLogger
+
 
 
 @dataclass
@@ -14,8 +16,10 @@ class BaseTask(ABC):
 class BaseTaskDataset(ABC, Dataset):
     data: Any
 
-    def __init__(self) -> None:
+    def __init__(self, logger: BaseLogger) -> None:
+        self._logger = logger
         self.get_data()
+
         
     @abstractmethod
     def get_data(self, *args, **kwargs):

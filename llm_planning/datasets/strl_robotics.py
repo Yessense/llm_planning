@@ -1,9 +1,10 @@
 from dataclasses import InitVar, dataclass, field
 import json
-from typing import List, Optional
+from typing import Any, List, Optional
 from pprint import pformat
 
 from llm_planning.datasets.base_dataset import BaseTask
+from llm_planning.infrastructure.logger import BaseLogger
 from . import BaseTaskDataset
 
 
@@ -12,6 +13,8 @@ class Step:
     action: str = ""
     arguments: List[str] = field(default_factory=list)
     text: str = ""
+    embedding: Any = None
+
 
 @dataclass
 class STRLTask(BaseTask):
@@ -25,13 +28,13 @@ class STRLTask(BaseTask):
             self.goal = self.goal[:-1]
 
 
-
 class STRLDataset(BaseTaskDataset):
-    def __init__(self, path_to_datset: Optional[str] = None):
-        self.path_to_dataset = path_to_datset
-        super().__init__()
+    def __init__(self, logger: BaseLogger,
+                 path_to_dataset: Optional[str] = None):
+        self.path_to_dataset = path_to_dataset
+        super().__init__(logger=logger)
 
-        with open(path_to_datset, 'r') as f:
+        with open(path_to_dataset, 'r') as f:
             js = json.load(f)
         self._data = js
         self._size = len(self._data)
@@ -50,9 +53,9 @@ class STRLDataset(BaseTaskDataset):
                     self.objects.add(step.arguments[0])
                     self.recepticles.add(step.arguments[1])
 
-        print(self.actions)
-        print(self.objects)
-        print(self.recepticles)
+        self._logger.info(f'Possible actions{self.actions}')
+        self._logger.info(f'Possible objects{self.objects}')
+        self._logger.info(f'Possible recepticles{self.recepticles}')
         #     for i, step in enumerate(element['plan']):
         #         if step[0] == 'find':
         #             continue
@@ -65,9 +68,8 @@ class STRLDataset(BaseTaskDataset):
         #             steps.append(step)
         #     element['plan'] = steps
 
-                    
-                # for arg_idx, argument in enumerate(step[1:]):
-                    # pass
+        # for arg_idx, argument in enumerate(step[1:]):
+        # pass
         #             if isinstance(argument, list):
         #                 arguments.append(argument[0])
         #             else:
@@ -110,3 +112,7 @@ if __name__ == '__main__':
     for item in dataset:
         print(item)
     # print(dataset[1])
+
+# {'put', 'pick_up', 'move_to'}
+# {'cube', 'cat', 'pepper'}
+# {'floor', 'table', 'box', 'chair', 'drawer', 'white box'}
