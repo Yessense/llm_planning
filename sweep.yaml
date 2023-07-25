@@ -1,0 +1,14 @@
+program: llm_planning.run
+method: grid
+metric:
+  goal: maximize
+  name: "Process GPU Temp (℃)"
+parameters:
+  experiment.seed:
+    values: [0, 1, 2]
+
+command:
+  - python
+  - -m
+  - ${program}
+  - ${args_no_hyphens}
