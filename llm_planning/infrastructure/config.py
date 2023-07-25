@@ -101,7 +101,7 @@ class STRLProcessorConfig(BaseProcessorConfig):
 @dataclass
 class LLMPlanningConfig:
     model: BaseModelConfig = field(default_factory=LLAMA7BModelConfig)
-    gen_method: BasePlanGenConfig = field(default_factory=FullPlanGenerationConfig)
+    gen_method: BasePlanGenConfig = field(default_factory=AutoregressivePlanGenerationConfig)
     experiment: BaseExperimentConfig = field(default_factory=BaseExperimentConfig)
     dataset: BaseDatasetConfig = field(default_factory=STRLDatasetConfig)
     logger: BaseLoggerConfig = field(default_factory=WandbLoggerConfig)

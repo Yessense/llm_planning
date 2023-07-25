@@ -118,7 +118,8 @@ class AutoregressivePlanGeneration(BasePlanGeneration):
             if output_step is None or self._processor.is_terminating(output_step):
                 break
             else:
-                steps.append(output_step)
+                closest_step = self._step_classifier.get_closest_step(output_step)
+                steps.append(closest_step)
         return self._processor.to_task(steps)
 
 if __name__ == "__main__":

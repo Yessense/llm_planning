@@ -5,11 +5,13 @@ from llm_planning.metrics.base_metric import BaseMetric, BaseTaskMetrics, prepro
 from llm_planning.processors.base_processor import BaseProcessor
 
 
-class LCS(BaseMetric):
+class LCSA(BaseMetric):
+    """Longest common subarray"""
+
     def __init__(self,
                  pred_process_f: Callable,
                  target_process_f: Callable,
-                 name: str = 'LCS',
+                 name: str = 'LCSA',
                  **kwargs):
         super().__init__(pred_process_f,
                          target_process_f,
@@ -18,7 +20,34 @@ class LCS(BaseMetric):
 
     @preprocess
     def __call__(self, pred: List, target: List) -> float:
-        """Time Complexity: O(n*m)"""
+        p, t = len(pred), len(target)
+        dp = [[0] * (t+1) for _ in range(p+1)]
+        ans = 0
+        for i in range(1, p+1):
+            for j in range(1, t+1):
+                if pred[i-1] == target[j-1]:
+                    dp[i][j] = dp[i-1][j-1] + 1
+                else:
+                    dp[i][j] = 0
+                ans = max(ans, dp[i][j])
+        return ans / max(p, t)
+
+
+class LCSS(BaseMetric):
+    """Longest common subsequence"""
+
+    def __init__(self,
+                 pred_process_f: Callable,
+                 target_process_f: Callable,
+                 name: str = 'LCSS',
+                 **kwargs):
+        super().__init__(pred_process_f,
+                         target_process_f,
+                         name,
+                         **kwargs)
+
+    @preprocess
+    def __call__(self, pred: List, target: List) -> float:
         p = len(pred)
         t = len(target)
 
@@ -37,7 +66,7 @@ class LCS(BaseMetric):
         return arr[p][t] / max(p, t)
 
 
-class EM(LCS):
+class EM(LCSS):
     def __init__(self, pred_process_f: Callable[..., Any], target_process_f: Callable[..., Any], name: str = 'EM', **kwargs):
         super().__init__(pred_process_f, target_process_f, name, **kwargs)
 
@@ -66,11 +95,14 @@ class LCSMetrics(BaseTaskMetrics):
             task.steps = processor._text_to_steps(task.text)
             return [step.text for step in task.steps]
 
-        a_lcs = LCS(to_action_list, to_action_list, 'A-LCS')
-        p_lcs = LCS(to_step_list, to_step_list, 'P-LCS')
+        a_lcsq = LCSS(to_action_list, to_action_list, 'A-LCSS')
+        p_lcsq = LCSS(to_step_list, to_step_list, 'P-LCSS')
+        a_lcsg = LCSS(to_action_list, to_action_list, 'A-LCSA')
+        p_lcsg = LCSS(to_step_list, to_step_list, 'P-LCSA')
         pem = EM(to_step_list, to_step_list, 'PEM')
         aem = EM(to_action_list, to_action_list, 'AEM')
-        self._metric_list: List[BaseMetric] = [a_lcs, p_lcs, pem, aem]
+        self._metric_list: List[BaseMetric] = [
+            a_lcsq, p_lcsq, a_lcsg, p_lcsg, pem, aem]
         # Dict to save intermediate values
         self._metric_values: Dict = {
             metric_cls.name: 0. for metric_cls in self._metric_list}
