@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, List
 import torch
 from torch.utils.data import Dataset
 
@@ -31,5 +31,9 @@ class BaseTaskDataset(ABC, Dataset):
 
     @abstractmethod
     def __getitem__(self, idx) -> BaseTask:
+        raise NotImplementedError
+
+    @abstractmethod
+    def generate_all_possible_steps(self) -> List:
         raise NotImplementedError
     

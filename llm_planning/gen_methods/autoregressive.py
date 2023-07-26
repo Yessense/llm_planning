@@ -5,36 +5,37 @@ import numpy as np
 import os
 
 from sklearn.metrics.pairwise import cosine_similarity
+from llm_planning.datasets import base_dataset
 from llm_planning.datasets.strl_robotics import Step
 from pprint import pprint
 
 from llm_planning.gen_methods.base_gen import BasePlanGeneration
 from llm_planning.infrastructure.logger import BaseLogger, WandbLogger
 from llm_planning.models.base_model import BaseLLMModel, BaseInput
-from llm_planning.datasets.base_dataset import BaseTask
+from llm_planning.datasets.base_dataset import BaseTask, BaseTaskDataset
 from llm_planning.processors.base_processor import BaseProcessor
 from sentence_transformers import SentenceTransformer
 
 from llm_planning.processors.strl_processor import STRLProcessor
 
-ACTIONS = ['put', 'pick_up', 'move_to']
-OBJECTS = ['cube', 'cat', 'pepper']
-RECEPTICLES = ['floor', 'table', 'box', 'chair', 'drawer', 'white box']
+# ACTIONS = ['put', 'pick_up', 'move_to']
+# OBJECTS = ['cube', 'cat', 'pepper']
+# RECEPTICLES = ['floor', 'table', 'box', 'chair', 'drawer', 'white box']
 
-def generate_all_possible_steps(actions: List[str],
-                                objects: List[str],
-                                recepticles: List[str]) -> List[Step]:
-    possible_steps = []
-    for action in actions:
-        if action == 'put' or action == 'pick_up':
-            for obj, recept in product(objects, recepticles):
-                possible_steps.append(Step(action=action,
-                                           arguments=[obj, recept]))
-        elif action == 'move_to':
-            for target in chain(objects, recepticles):
-                possible_steps.append(Step(action=action,
-                                           arguments=[target]))
-    return possible_steps
+# def generate_all_possible_steps(actions: List[str],
+#                                 objects: List[str],
+#                                 recepticles: List[str]) -> List[Step]:
+#     possible_steps = []
+#     for action in actions:
+#         if action == 'put' or action == 'pick_up':
+#             for obj, recept in product(objects, recepticles):
+#                 possible_steps.append(Step(action=action,
+#                                            arguments=[obj, recept]))
+#         elif action == 'move_to':
+#             for target in chain(objects, recepticles):
+#                 possible_steps.append(Step(action=action,
+#                                            arguments=[target]))
+#     return possible_steps
 
 
 class StepClassifier:
@@ -46,7 +47,9 @@ class StepClassifier:
 
     def __init__(self,
                  processor: STRLProcessor,
-                 saved_steps_path: Optional[str]) -> None:
+                 saved_steps_path: Optional[str],
+                 dataset: BaseTaskDataset,
+                 ) -> None:
 
         self._model = SentenceTransformer('paraphrase-MiniLM-L6-v2')
         self._processor = processor
@@ -56,10 +59,9 @@ class StepClassifier:
             with open(saved_steps_path, 'rb') as f:
                 self._all_possible_steps = pickle.load(f)
         else:
-            self._all_possible_steps = generate_all_possible_steps(actions=ACTIONS,
-                                                     objects=OBJECTS,
-                                                     recepticles=RECEPTICLES)
+            self._all_possible_steps = dataset.generate_all_possible_steps()
             self._calculate_embeddings(self._all_possible_steps)
+            # print(self._all_possible_steps)
 
             with open(saved_steps_path, 'wb') as f:
                 pickle.dump(self._all_possible_steps, f)
@@ -99,15 +101,19 @@ class AutoregressivePlanGeneration(BasePlanGeneration):
                  processor: STRLProcessor,
                  logger: BaseLogger,
                  saved_steps_path: str,
+                 dataset: BaseTaskDataset,
                  max_plan_length: int = 10,
                  **kwargs):
         self._saved_steps_path = saved_steps_path
         self._max_plan_length = max_plan_length
         super().__init__(model, processor, logger, **kwargs)
+        self._step_classifier = StepClassifier(processor=self._processor,
+                                               saved_steps_path=self._saved_steps_path,
+                                               dataset=dataset)
 
     def setup(self) -> None:
-        self._step_classifier = StepClassifier(processor=self._processor,
-                                               saved_steps_path=self._saved_steps_path)
+        pass
+                                             
         
     def predict(self, gt_task: BaseTask) -> BaseTask:
         steps: List[Step] = []

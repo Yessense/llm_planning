@@ -1,4 +1,5 @@
 from dataclasses import InitVar, dataclass, field
+from itertools import chain, product
 import json
 from typing import Any, List, Optional
 from pprint import pformat
@@ -13,7 +14,8 @@ class Step:
     action: str = ""
     arguments: List[str] = field(default_factory=list)
     text: str = ""
-    embedding: Any = None
+    embedding: Any = field(default_factory=lambda: None,
+                           repr=False)
 
 
 @dataclass
@@ -22,6 +24,7 @@ class STRLTask(BaseTask):
     steps: List[Step] = field(default_factory=list)
     text: str = ""
     task_type: int = -1
+    plan_id: int = -1
 
     def __post_init__(self):
         if self.goal.endswith("."):
@@ -44,18 +47,18 @@ class STRLDataset(BaseTaskDataset):
 
         self.actions = set()
         self.objects = set()
-        self.recepticles = set()
+        self.receptacles = set()
 
         for item in self:
             for step in item.steps:
                 self.actions.add(step.action)
                 if len(step.arguments) == 2:
                     self.objects.add(step.arguments[0])
-                    self.recepticles.add(step.arguments[1])
+                    self.receptacles.add(step.arguments[1])
 
-        self._logger.info(f'Possible actions{self.actions}')
-        self._logger.info(f'Possible objects{self.objects}')
-        self._logger.info(f'Possible recepticles{self.recepticles}')
+        self._logger.info(f'Possible actions:     {self.actions}')
+        self._logger.info(f'Possible objects:     {self.objects}')
+        self._logger.info(f'Possible receptacles: {self.receptacles}')
         #     for i, step in enumerate(element['plan']):
         #         if step[0] == 'find':
         #             continue
@@ -89,6 +92,19 @@ class STRLDataset(BaseTaskDataset):
         # with open('out_plan.json' ,'w') as f:
         #     json.dump(self._data, f, ensure_ascii=False)
 
+    def generate_all_possible_steps(self) -> List[Step]:
+        possible_steps = []
+        for action in self.actions:
+            if action == 'put' or action == 'pick_up':
+                for obj, recept in product(self.objects, self.receptacles):
+                    possible_steps.append(Step(action=action,
+                                            arguments=[obj, recept]))
+            elif action == 'move_to':
+                for target in chain(self.objects, self.receptacles):
+                    possible_steps.append(Step(action=action,
+                                            arguments=[target]))
+        return possible_steps
+
     def __len__(self):
         return self._size
 
@@ -104,7 +120,8 @@ class STRLDataset(BaseTaskDataset):
 
         return STRLTask(goal=plan['goal_eng'],
                         steps=steps,
-                        task_type=plan['task_type'])
+                        task_type=plan['task_type'],
+                        plan_id=plan["plan_id"])
 
 
 if __name__ == '__main__':

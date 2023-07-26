@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any, List, Optional
 import torch
 
 from llm_planning.infrastructure.logger import BaseLogger
@@ -10,6 +10,11 @@ from llm_planning.infrastructure.logger import BaseLogger
 class BaseInput(ABC):
     text: Optional[str] = None
     # image: Optional[torch.Tensor] = None
+
+@dataclass
+class ScoringInput(BaseInput):
+    text: Optional[str] = None
+    options: Optional[List[str]] = None
 
 @dataclass
 class BaseOutput(ABC):
@@ -49,10 +54,10 @@ class BaseLLMModel(ABC):
         """ Generate text"""
         pass
 
-    # @abstractmethod
-    # def score_text(self, **kwargs) -> Any:
-    #     """ Score text for saycan approach """
-    #     pass
+    @abstractmethod
+    def score_text(self, **kwargs) -> Any:
+        """ Score text for saycan approach """
+        pass
 
     @abstractmethod
     def _load(self) -> None:

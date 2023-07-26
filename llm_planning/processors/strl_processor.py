@@ -32,7 +32,7 @@ class STRLProcessor(BaseProcessor):
 
         self._system_prompt = prompt
         self._stop_step_pattern = re.compile(
-            r"(\s*\d+\.\s*)(\w+\(('[\w ]+'(,\s)?)*\))*")
+            r'(\s*\d+\.\s*)(\w+\(("[\w ]+"(,\s)?)*\))*')
         self._logger.info("Building system prompt...")
         self._logger.info("\n" + self._system_prompt)
 
@@ -42,7 +42,8 @@ class STRLProcessor(BaseProcessor):
         return query
 
     def _step_to_text(self, step: Step) -> str:
-        text = f'{step.action}({", ".join([repr(argument) for argument in step.arguments])})'
+        arguments = [f'"{argument}"' for argument in step.arguments]
+        text = f'{step.action}({", ".join(arguments)})'
         return text
 
     def _steps_to_text(self,

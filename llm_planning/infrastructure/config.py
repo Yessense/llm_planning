@@ -47,7 +47,7 @@ class BaseProcessorConfig:
 class BaseExperimentConfig:
     device: int = 2
     logging_dir: str = "${hydra:run.dir}/"
-    seed: int = 0
+    seed: int = 1
     path_to_data_dir: str = "${hydra:runtime.cwd}/data/"
 
 
@@ -79,7 +79,7 @@ class AutoregressivePlanGenerationConfig(BasePlanGenConfig):
 # Datasets
 @dataclass
 class STRLDatasetConfig(BaseDatasetConfig):
-    path_to_dataset: str = '${experiment.path_to_data_dir}/plans.json'
+    path_to_dataset: str = '${experiment.path_to_data_dir}/new_plans_with_args.json'
     _target_: str = 'llm_planning.datasets.strl_robotics.STRLDataset'
 
 

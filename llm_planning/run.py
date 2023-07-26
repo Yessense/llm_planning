@@ -17,7 +17,6 @@ from hydra.utils import instantiate
 from llm_planning.processors.strl_processor import STRLProcessor
 
 
-
 cs = ConfigStore.instance()
 cs.store(name="planner", node=LLMPlanningConfig)
 
@@ -36,43 +35,35 @@ def run(cfg=LLMPlanningConfig) -> None:
     dataset = instantiate(cfg.dataset, logger=logger)
 
     train_split, example_split = random_split(
-        dataset, [0.8, 0.2], generator=generator)
+        dataset, [0.966, 0.034], generator=generator)
 
     processor = instantiate(cfg.processor, logger=logger)
     # processor = STRLProcessor(logger=logger)
     processor.build_system_prompt(example_split)
 
     model = instantiate(cfg.model, logger=logger)
-    # model = LLAMA7B(logger=logger,
-    #                 device=cfg.device,
-    #                 name='llama_7b')
 
-    # gen_method = FullPlanGeneration(logger=logger,
-    #                                 processor=processor,
-    #                                 model=model)
-    
-    gen_method = instantiate(cfg.gen_method, 
+    gen_method = instantiate(cfg.gen_method,
                              logger=logger,
                              processor=processor,
-                             model=model)
-    # gen_method= AutoregressivePlanGeneration(logger=logger,
-    #                                          processor=processor,
-    #                                          model=model,
-    #                                          saved_steps_path=cfg.saved_steps_path)
+                             model=model,
+                             dataset=dataset)
     metrics = instantiate(cfg.metrics,
                           logger=logger,
                           processor=processor)
-    # lcs_metrics = LCSMetrics(logger=logger,
-    #                          processor=processor)
 
+    size = len(train_split)
     for i, gt_task in enumerate(train_split):
 
         gt_task.text = processor._steps_to_text(gt_task.steps)
         predicted_task = gen_method.predict(gt_task)
         curr_metrics = metrics.update(predicted_task=predicted_task,
-                           target_task=gt_task)
+                                      target_task=gt_task)
+
+        logger.info(f"{i + 1}\\{size}.Plan id:\t{gt_task.plan_id}")
         logger.info(f"Goal:           {gt_task.goal}")
-        logger.info(f"GT plan:        {processor._steps_to_text(gt_task.steps)}")
+        logger.info(
+            f"GT plan:        {processor._steps_to_text(gt_task.steps)}")
         logger.info(f"Predicted plan: {predicted_task.text}")
         logger.info(f"Metrics:        {curr_metrics}\n\n")
 

@@ -21,16 +21,19 @@ class LCSA(BaseMetric):
     @preprocess
     def __call__(self, pred: List, target: List) -> float:
         p, t = len(pred), len(target)
-        dp = [[0] * (t+1) for _ in range(p+1)]
-        ans = 0
-        for i in range(1, p+1):
-            for j in range(1, t+1):
-                if pred[i-1] == target[j-1]:
-                    dp[i][j] = dp[i-1][j-1] + 1
+
+        arr = [[0 for k in range(t+1)] for l in range(p+1)]
+        mx = 0
+        for i in range(p + 1):
+            for j in range(t + 1):
+                if (i == 0 or j == 0):
+                    arr[i][j] = 0
+                elif (pred[i-1] == target[j-1]):
+                    arr[i][j] = arr[i-1][j-1] + 1
+                    mx = max(mx, arr[i][j])
                 else:
-                    dp[i][j] = 0
-                ans = max(ans, dp[i][j])
-        return ans / max(p, t)
+                    arr[i][j] = 0
+        return mx / t
 
 
 class LCSS(BaseMetric):
@@ -63,7 +66,7 @@ class LCSS(BaseMetric):
                 else:
                     arr[i][j] = max(arr[i - 1][j], arr[i][j - 1])
 
-        return arr[p][t] / max(p, t)
+        return arr[p][t] / t
 
 
 class EM(LCSS):
@@ -97,8 +100,8 @@ class LCSMetrics(BaseTaskMetrics):
 
         a_lcsq = LCSS(to_action_list, to_action_list, 'A-LCSS')
         p_lcsq = LCSS(to_step_list, to_step_list, 'P-LCSS')
-        a_lcsg = LCSS(to_action_list, to_action_list, 'A-LCSA')
-        p_lcsg = LCSS(to_step_list, to_step_list, 'P-LCSA')
+        a_lcsg = LCSA(to_action_list, to_action_list, 'A-LCSA')
+        p_lcsg = LCSA(to_step_list, to_step_list, 'P-LCSA')
         pem = EM(to_step_list, to_step_list, 'PEM')
         aem = EM(to_action_list, to_action_list, 'AEM')
         self._metric_list: List[BaseMetric] = [

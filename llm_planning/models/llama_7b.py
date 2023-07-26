@@ -53,11 +53,15 @@ class LLAMA7B(BaseLLMModel):
                                           max_new_tokens=self.max_new_tokens)
         output = BaseOutput(output[0]['generated_text'])
         return output
+    
+    def score_text(self, inputs: BaseInput, **kwargs) -> Any:
+        return super().score_text(**kwargs)
 
 if __name__ == "__main__":
-    wandb_logger = WandbLogger(log_filename=None)
+    wandb_logger = WandbLogger(log_filename='test_llama')
     model = LLAMA7B(name='llama_7b', logger=wandb_logger)
 
-    answer = model.generate("questin")
+    inputs = BaseInput(text='test')
+    answer = model.generate(inputs)
 
     print(answer)
