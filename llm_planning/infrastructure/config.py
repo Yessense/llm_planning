@@ -67,6 +67,12 @@ class FullPlanGenerationConfig(BasePlanGenConfig):
     _target_: str = "llm_planning.gen_methods.full.FullPlanGeneration"
     name: str = "full generation"
 
+@dataclass
+class SaycanPlanGenerationConfig(BasePlanGenConfig):
+    _target_: str = "llm_planning.gen_methods.saycan.SaycanPlanGeneration"
+    name: str = "saycan generation"
+    max_plan_size: int = 10
+    saved_steps_path: str = "${experiment.path_to_data_dir}/all_possible_steps.pkl"
 
 @dataclass
 class AutoregressivePlanGenerationConfig(BasePlanGenConfig):
@@ -79,7 +85,7 @@ class AutoregressivePlanGenerationConfig(BasePlanGenConfig):
 # Datasets
 @dataclass
 class STRLDatasetConfig(BaseDatasetConfig):
-    path_to_dataset: str = '${experiment.path_to_data_dir}/new_plans_with_args.json'
+    path_to_dataset: str = '${experiment.path_to_data_dir}/new_plans.json'
     _target_: str = 'llm_planning.datasets.strl_robotics.STRLDataset'
 
 
@@ -101,7 +107,7 @@ class STRLProcessorConfig(BaseProcessorConfig):
 @dataclass
 class LLMPlanningConfig:
     model: BaseModelConfig = field(default_factory=LLAMA7BModelConfig)
-    gen_method: BasePlanGenConfig = field(default_factory=AutoregressivePlanGenerationConfig)
+    gen_method: BasePlanGenConfig = field(default_factory=SaycanPlanGenerationConfig)
     experiment: BaseExperimentConfig = field(default_factory=BaseExperimentConfig)
     dataset: BaseDatasetConfig = field(default_factory=STRLDatasetConfig)
     logger: BaseLoggerConfig = field(default_factory=WandbLoggerConfig)

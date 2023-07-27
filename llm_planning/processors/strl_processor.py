@@ -2,7 +2,7 @@ import re
 from typing import List, Optional, Union
 from llm_planning.datasets.strl_robotics import STRLDataset, STRLTask, Step
 from llm_planning.infrastructure.logger import BaseLogger
-from llm_planning.models.base_model import BaseInput, BaseOutput
+from llm_planning.models.base_model import BaseInput, BaseOutput, ScoringInput
 from llm_planning.processors.base_processor import BaseProcessor
 
 
@@ -10,10 +10,10 @@ class STRLProcessor(BaseProcessor):
     TERMINATING_STRING = 'done()'
 
     @property
-    def system_prompt_is_set(self):
-        return len(self._system_prompt)
+    def system_prompt_is_set(self) -> bool:
+        return len(self._system_prompt) > 0
 
-    def is_terminating(self, step: Step):
+    def is_terminating(self, step: Step) -> bool:
         return step.text == self.TERMINATING_STRING
 
     def __init__(self, logger: BaseLogger, **kwargs) -> None:
@@ -64,7 +64,8 @@ class STRLProcessor(BaseProcessor):
 
     def to_inputs(self,
                   task: STRLTask,
-                  steps: Optional[List[Step]] = None) -> BaseInput:
+                  steps: Optional[List[Step]] = None,
+                  options: Optional[List[Step]] = None) -> BaseInput:
         if not self.system_prompt_is_set:
             raise ValueError(
                 "System prompt is not set. You need to set system prompt.")
@@ -73,6 +74,9 @@ class STRLProcessor(BaseProcessor):
             if steps is not None:
                 text += self._steps_to_text(steps,
                                             add_terminating_string=False)
+            if options is not None:
+                return ScoringInput(text=text, 
+                                    options=[f'{len(steps) + 1}. {option.text}' for option in options])
             return BaseInput(text=text)
 
     def _text_to_steps(self, task_text: str, cut_one_step: bool = False) -> Union[List[Step], Step, None]:
@@ -113,7 +117,6 @@ class STRLProcessor(BaseProcessor):
                         arguments=arguments[1:],
                         text=step_text)
             return step
-
 
     def to_task(self, task: Union[BaseOutput, List[Step]]) -> STRLTask:
         # Autoregressive Mode

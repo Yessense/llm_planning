@@ -20,7 +20,10 @@ class ScoringInput(BaseInput):
 class BaseOutput(ABC):
     text: Optional[str] = None
 
-    
+@dataclass
+class ScoringOutput(ABC):
+    scores: Optional[torch.Tensor] = None
+
 class BaseLLMModel(ABC):
     """ Base class for LLM models"""
     _name: str
@@ -55,7 +58,7 @@ class BaseLLMModel(ABC):
         pass
 
     @abstractmethod
-    def score_text(self, **kwargs) -> Any:
+    def score_text(self, inputs: ScoringInput) -> ScoringOutput:
         """ Score text for saycan approach """
         pass
 

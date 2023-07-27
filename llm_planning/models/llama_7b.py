@@ -1,11 +1,14 @@
 import torch
+from tqdm import tqdm
+from llm_planning.datasets.strl_robotics import Step
 
 from llm_planning.infrastructure.logger import WandbLogger
-from llm_planning.models.base_model import BaseInput, BaseLLMModel, BaseOutput
+from llm_planning.models.base_model import BaseInput, BaseLLMModel, BaseOutput, ScoringInput, ScoringOutput
 from transformers import AutoModelForCausalLM, LlamaTokenizer
 from transformers import pipeline
+import torch.nn.functional as F
 
-from typing import Any
+from typing import Any, List
 import pprint
 
 
@@ -29,6 +32,7 @@ class LLAMA7B(BaseLLMModel):
             "decapoda-research/llama-7b-hf",
             torch_dtype=torch.float16,
             # load_in_8bit=True,
+            # device_map='auto',
             device_map={'': self.device},
         )
         self.model.eval()
@@ -54,8 +58,63 @@ class LLAMA7B(BaseLLMModel):
         output = BaseOutput(output[0]['generated_text'])
         return output
     
-    def score_text(self, inputs: BaseInput, **kwargs) -> Any:
-        return super().score_text(**kwargs)
+    def score_text(self,
+                   inputs: ScoringInput,
+                   option_start: str = '\n',
+                   **kwargs) -> Any:
+        scores = torch.zeros(len(inputs.options))
+        
+        for i, option in tqdm(inputs.options):
+            token_txt, token_probs = self.score_option(query=inputs.text, option=option)
+            score = self.score_option(query=inputs.text, option=option)
+            scores[i] = score
+            # token_texts.append(token_txt)
+            # token_probabilities.append(token_probs)
+        return ScoringOutput(scores=scores)
+
+
+    def score_option(self, query, option):
+        text = query + option
+        inputs = self.tokenizer(text, return_tensors='pt').to(self.device)
+        # inputs_tokenized = [self.tokenizer.decode(token) for token in inputs.input_ids[0]]
+        
+        with torch.no_grad():
+            outputs = self.model(
+                input_ids=inputs.input_ids,
+                attention_mask=inputs.attention_mask,
+            )
+            # torch.Tensor of shape (1, 843, 32000)
+            #                       (batch_size, n_tokens, vocab_dim)
+            logits = outputs.logits
+        
+        # squeeze() to remove batch dimension
+        # cut off the last token, because it refers to the next generated character
+        predictions = F.log_softmax(logits, dim=-1).squeeze()[:-1]
+        # predictions -> (842, 32000)
+
+        # input_ids -> (1, 843)
+        # tokens with start token (0, 6417, 327, ...)        
+        # cut start token
+        input_ids = inputs.input_ids.squeeze(0)[1:]
+        gen_probs = torch.gather(predictions, -1, input_ids.unsqueeze(-1)).squeeze(-1)
+        
+        # text_token = []
+        # text_token_logprob = []
+        # to stop gathering prob
+        option_tokenized = self.tokenizer(option, return_tensors="pt").input_ids[0]
+        # option_as_tokens = [self.tokenizer.decode(token) for token in option_tokenized]
+        score = 0
+
+        for i, (token, prob) in enumerate(zip(reversed(input_ids), reversed(gen_probs))):
+            # break when option_ends
+            if i == len(option_tokenized) - 2:
+                break
+            # text_token.append(self.tokenizer.decode(token))
+            # text_token_logprob.append(prob.item())
+            score += prob.item()
+    
+        return score #text_token, text_token_logprob
+
 
 if __name__ == "__main__":
     wandb_logger = WandbLogger(log_filename='test_llama')
