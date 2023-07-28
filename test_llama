@@ -1,8 +1,0 @@
-INFO:WandbLogger:Initialized logger for project: 'wandb_test_llm_planning'
-INFO:WandbLogger:Run name: 'run_name'
-INFO:WandbLogger:Initializing wandb...
-INFO:WandbLogger:Loading llama_7b model...
-INFO:WandbLogger:Model device map: 
-{'': 2}
-INFO:WandbLogger:Model: llama_7b
-
