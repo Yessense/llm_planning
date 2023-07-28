@@ -45,7 +45,7 @@ class BaseProcessorConfig:
 
 @dataclass
 class BaseExperimentConfig:
-    device: int = 2
+    device: int = 1
     logging_dir: str = "${hydra:run.dir}/"
     seed: int = 1
     path_to_data_dir: str = "${hydra:runtime.cwd}/data/"
@@ -97,6 +97,12 @@ class LLAMA7BModelConfig(BaseModelConfig):
     name: str = 'llama7b'
     max_new_tokens: int = 100
 
+@dataclass
+class MiniGPT4ModelConfig(BaseModelConfig):
+    _target_: str = 'llm_planning.models.minigpt4.MiniGPT4'
+    device: int = "${experiment.device}"
+    name: str = 'minigpt4'
+    max_new_tokens: int = 100
 
 @dataclass
 class STRLProcessorConfig(BaseProcessorConfig):
@@ -106,8 +112,8 @@ class STRLProcessorConfig(BaseProcessorConfig):
 
 @dataclass
 class LLMPlanningConfig:
-    model: BaseModelConfig = field(default_factory=LLAMA7BModelConfig)
-    gen_method: BasePlanGenConfig = field(default_factory=SaycanPlanGenerationConfig)
+    model: BaseModelConfig = field(default_factory=MiniGPT4ModelConfig)
+    gen_method: BasePlanGenConfig = field(default_factory=FullPlanGenerationConfig)
     experiment: BaseExperimentConfig = field(default_factory=BaseExperimentConfig)
     dataset: BaseDatasetConfig = field(default_factory=STRLDatasetConfig)
     logger: BaseLoggerConfig = field(default_factory=WandbLoggerConfig)

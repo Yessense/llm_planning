@@ -162,3 +162,4 @@ wandb/
 .vscode/
 outputs/
 todo
+.cache/

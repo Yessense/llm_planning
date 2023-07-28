@@ -9,7 +9,6 @@ from llm_planning.infrastructure.logger import BaseLogger
 @dataclass
 class BaseInput(ABC):
     text: Optional[str] = None
-    # image: Optional[torch.Tensor] = None
 
 @dataclass
 class ScoringInput(BaseInput):

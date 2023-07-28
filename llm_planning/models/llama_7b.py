@@ -64,8 +64,7 @@ class LLAMA7B(BaseLLMModel):
                    **kwargs) -> Any:
         scores = torch.zeros(len(inputs.options))
         
-        for i, option in tqdm(inputs.options):
-            token_txt, token_probs = self.score_option(query=inputs.text, option=option)
+        for i, option in enumerate(tqdm(inputs.options)):
             score = self.score_option(query=inputs.text, option=option)
             scores[i] = score
             # token_texts.append(token_txt)

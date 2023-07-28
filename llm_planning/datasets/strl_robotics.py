@@ -4,6 +4,8 @@ import json
 from typing import Any, List, Optional
 from pprint import pformat
 
+import torch
+
 from llm_planning.datasets.base_dataset import BaseTask
 from llm_planning.infrastructure.logger import BaseLogger
 from . import BaseTaskDataset
@@ -25,6 +27,7 @@ class STRLTask(BaseTask):
     text: str = ""
     task_type: int = -1
     plan_id: int = -1
+    image: Optional[torch.Tensor] = 1
 
     def __post_init__(self):
         if self.goal.endswith("."):

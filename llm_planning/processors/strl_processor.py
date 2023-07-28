@@ -1,8 +1,11 @@
 import re
 from typing import List, Optional, Union
+
+import torch
 from llm_planning.datasets.strl_robotics import STRLDataset, STRLTask, Step
 from llm_planning.infrastructure.logger import BaseLogger
 from llm_planning.models.base_model import BaseInput, BaseOutput, ScoringInput
+from llm_planning.models.minigpt4 import Minigpt4Input
 from llm_planning.processors.base_processor import BaseProcessor
 
 
@@ -72,11 +75,12 @@ class STRLProcessor(BaseProcessor):
         else:
             text = self._system_prompt + self._goal_to_query(task.goal)
             if steps is not None:
-                text += self._steps_to_text(steps,
-                                            add_terminating_string=False)
+                text += self._steps_to_text(steps, add_terminating_string=False)
             if options is not None:
-                return ScoringInput(text=text, 
-                                    options=[f'{len(steps) + 1}. {option.text}' for option in options])
+                return ScoringInput(text=text, options=[f'{len(steps) + 1}. {option.text}' for option in options])
+            if task.image is not None:
+                # TODO: fix this
+                return Minigpt4Input(text=text, image=torch.zeros(3,224,224))
             return BaseInput(text=text)
 
     def _text_to_steps(self, task_text: str, cut_one_step: bool = False) -> Union[List[Step], Step, None]:
