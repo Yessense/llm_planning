@@ -29,7 +29,6 @@ Data exploration notebook <a target="_blank" href="https://colab.research.google
 </a>
 
 ## Speech recognition in noisy environments
-
 Notebook with data processing and wav2vec model finetuning and evaluation whisper and wav2vec models <a target="_blank" href="https://colab.research.google.com/github/Yessense/llm_planning/blob/master/speech_recognition/Speech%20recognition%20in%20noise%20Dolgushin.ipynb">
   <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/>
 </a>
