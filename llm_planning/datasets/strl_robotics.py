@@ -107,6 +107,7 @@ class STRLDataset(BaseTaskDataset):
                     possible_steps.append(Step(action=action,
                                             arguments=[target]))
         return possible_steps
+    
 
     def __len__(self):
         return self._size

@@ -45,10 +45,10 @@ class BaseProcessorConfig:
 
 @dataclass
 class BaseExperimentConfig:
-    device: int = 1
+    device: int = 0
     logging_dir: str = "${hydra:run.dir}/"
     seed: int = 1
-    path_to_data_dir: str = "${hydra:runtime.cwd}/data/"
+    path_to_data_dir: str = "${hydra:runtime.cwd}/data3/"
 
 
 # Loggers
@@ -81,11 +81,22 @@ class AutoregressivePlanGenerationConfig(BasePlanGenConfig):
     max_plan_size: int = 10
     saved_steps_path: str = "${experiment.path_to_data_dir}/all_possible_steps.pkl"
 
+@dataclass
+class AutoregressivePlanGenerationActionConfig(BasePlanGenConfig):
+    _target_: str = "llm_planning.gen_methods.autoregressive_action.AutoregressivePlanGenerationAction"
+    name: str = "autoregressive generation_action"
+    max_plan_size: int = 10
+    saved_steps_path: str = "${experiment.path_to_data_dir}/all_possible_actions.pkl"
 
 # Datasets
 @dataclass
 class STRLDatasetConfig(BaseDatasetConfig):
-    path_to_dataset: str = '${experiment.path_to_data_dir}/new_plans.json'
+    path_to_dataset: str = '${experiment.path_to_data_dir}/pick_and_place_two_with_scene_objects.json'
+    _target_: str = 'llm_planning.datasets.strl_robotics.STRLDataset'
+
+@dataclass
+class SecondDatasetConfig(BaseDatasetConfig):
+    path_to_dataset: str = '${experiment.path_to_data_dir}/pick_complex_names.json'
     _target_: str = 'llm_planning.datasets.strl_robotics.STRLDataset'
 
 
@@ -109,13 +120,19 @@ class STRLProcessorConfig(BaseProcessorConfig):
     _target_: str = "llm_planning.processors.strl_processor.STRLProcessor"
     name: str = "strl_processor"
 
+@dataclass
+class STRLProcessorNoNumConfig(BaseProcessorConfig):
+    _target_: str = "llm_planning.processors.strl_processor_no_numerating.STRLProcessorNoNum"
+    name: str = "strl_processor_no_numerating"
+
 
 @dataclass
 class LLMPlanningConfig:
-    model: BaseModelConfig = field(default_factory=MiniGPT4ModelConfig)
+    model: BaseModelConfig = field(default_factory=LLAMA7BModelConfig)
     gen_method: BasePlanGenConfig = field(default_factory=FullPlanGenerationConfig)
     experiment: BaseExperimentConfig = field(default_factory=BaseExperimentConfig)
     dataset: BaseDatasetConfig = field(default_factory=STRLDatasetConfig)
+    second_dataset: BaseDatasetConfig = field(default_factory=SecondDatasetConfig)
     logger: BaseLoggerConfig = field(default_factory=WandbLoggerConfig)
     metrics: BaseMetricsConfig = field(default_factory=LCSMetricsConfig)
     processor: BaseProcessorConfig = field(default_factory=STRLProcessorConfig)

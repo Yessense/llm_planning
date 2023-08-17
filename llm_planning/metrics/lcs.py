@@ -43,11 +43,13 @@ class LCSS(BaseMetric):
                  pred_process_f: Callable,
                  target_process_f: Callable,
                  name: str = 'LCSS',
+                 normalize_both: bool = False,
                  **kwargs):
         super().__init__(pred_process_f,
                          target_process_f,
                          name,
                          **kwargs)
+        self._normalize_both = normalize_both
 
     @preprocess
     def __call__(self, pred: List, target: List) -> float:
@@ -65,13 +67,18 @@ class LCSS(BaseMetric):
                     arr[i][j] = arr[i - 1][j - 1] + 1
                 else:
                     arr[i][j] = max(arr[i - 1][j], arr[i][j - 1])
+        
+        if self._normalize_both:
+            normalize_coef = max(p, t)
+        else:
+            normalize_coef = t
 
-        return arr[p][t] / t
+        return arr[p][t] / normalize_coef
 
 
 class EM(LCSS):
-    def __init__(self, pred_process_f: Callable[..., Any], target_process_f: Callable[..., Any], name: str = 'EM', **kwargs):
-        super().__init__(pred_process_f, target_process_f, name, **kwargs)
+    def __init__(self, pred_process_f: Callable[..., Any], target_process_f: Callable[..., Any], name: str = 'EM', normalize_both: bool = True, **kwargs):
+        super().__init__(pred_process_f, target_process_f, name, normalize_both, **kwargs)
 
     def __call__(self, pred: List, target: List) -> float:
         return float(super().__call__(pred, target) == 1)
@@ -102,10 +109,12 @@ class LCSMetrics(BaseTaskMetrics):
         p_lcsq = LCSS(to_step_list, to_step_list, 'P-LCSS')
         a_lcsg = LCSA(to_action_list, to_action_list, 'A-LCSA')
         p_lcsg = LCSA(to_step_list, to_step_list, 'P-LCSA')
-        pem = EM(to_step_list, to_step_list, 'PEM')
-        aem = EM(to_action_list, to_action_list, 'AEM')
+        pem = EM(to_step_list, to_step_list, 'PEM', normalize_both=True)
+        aem = EM(to_action_list, to_action_list, 'AEM', normalize_both=True)
+        psem = EM(to_step_list, to_step_list, 'PSEM', normalize_both=False)
+        asem = EM(to_action_list, to_action_list, 'ASEM', normalize_both=False)
         self._metric_list: List[BaseMetric] = [
-            a_lcsq, p_lcsq, a_lcsg, p_lcsg, pem, aem]
+            a_lcsq, p_lcsq, a_lcsg, p_lcsg, pem, aem, psem, asem]
         # Dict to save intermediate values
         self._metric_values: Dict = {
             metric_cls.name: 0. for metric_cls in self._metric_list}
@@ -124,6 +133,11 @@ class LCSMetrics(BaseTaskMetrics):
             self._metric_values[name] += value
 
         return metric_values
+    
+    def update_error(self):
+        self._count += 1
+        return "Error. Answer cannot be parsed"
+
 
     def calculate_metrics(self) -> Dict:
         total_metrics = {key: value / self._count for key,

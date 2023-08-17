@@ -34,8 +34,10 @@ def run(cfg=LLMPlanningConfig) -> None:
     # dataset = STRLDataset(cfg.dataset_path)
     dataset = instantiate(cfg.dataset, logger=logger)
 
-    train_split, example_split = random_split(
-        dataset, [0.966, 0.034], generator=generator)
+    train_split, example_split, other = random_split(
+        dataset, [200, 10, len(dataset) - 210], generator=generator)
+    
+    # second_dataset = instantiate(cfg.second_dataset, logger=logger)
 
     processor = instantiate(cfg.processor, logger=logger)
     # processor = STRLProcessor(logger=logger)
@@ -47,7 +49,7 @@ def run(cfg=LLMPlanningConfig) -> None:
                              logger=logger,
                              processor=processor,
                              model=model,
-                             dataset=dataset)
+                             dataset=train_split)
     metrics = instantiate(cfg.metrics,
                           logger=logger,
                           processor=processor)
@@ -55,17 +57,26 @@ def run(cfg=LLMPlanningConfig) -> None:
     size = len(train_split)
     for i, gt_task in enumerate(train_split):
 
+        # gt_task.goal = 'remove the red apple from the table in the drawer'
         gt_task.text = processor._steps_to_text(gt_task.steps)
-        predicted_task = gen_method.predict(gt_task)
-        curr_metrics = metrics.update(predicted_task=predicted_task,
+        try:
+            predicted_task = gen_method.predict(gt_task)
+        except:
+            curr_metrics = metrics.update_error()
+
+            logger.info(f"{i + 1}\\{size}. Plan id:\t{gt_task.plan_id}")
+            logger.info(f"Goal:           {gt_task.goal}")
+            logger.info(f"GT plan:        {processor._steps_to_text(gt_task.steps)}")
+            logger.info(f"Metrics:        {curr_metrics}\n\n")
+        else:
+            curr_metrics = metrics.update(predicted_task=predicted_task,
                                       target_task=gt_task)
 
-        logger.info(f"{i + 1}\\{size}.Plan id:\t{gt_task.plan_id}")
-        logger.info(f"Goal:           {gt_task.goal}")
-        logger.info(
-            f"GT plan:        {processor._steps_to_text(gt_task.steps)}")
-        logger.info(f"Predicted plan: {predicted_task.text}")
-        logger.info(f"Metrics:        {curr_metrics}\n\n")
+            logger.info(f"{i + 1}\\{size}. Plan id:\t{gt_task.plan_id}")
+            logger.info(f"Goal:           {gt_task.goal}")
+            logger.info(f"GT plan:        {processor._steps_to_text(gt_task.steps)}")
+            logger.info(f"Predicted plan: {predicted_task.text}")
+            logger.info(f"Metrics:        {curr_metrics}\n\n")
 
     total_metrics = metrics.calculate_metrics()
     # total_metrics = {key: f'{value:0.3f}' for key, value in total_metrics.items()}

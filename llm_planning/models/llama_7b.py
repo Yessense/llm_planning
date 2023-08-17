@@ -1,6 +1,7 @@
 import torch
 from tqdm import tqdm
-from llm_planning.datasets.strl_robotics import Step
+from llm_planning.datasets.strl_robotics import STRLDataset, STRLTask, Step
+from llm_planning.gen_methods.full import FullPlanGeneration
 
 from llm_planning.infrastructure.logger import WandbLogger
 from llm_planning.models.base_model import BaseInput, BaseLLMModel, BaseOutput, ScoringInput, ScoringOutput
@@ -11,13 +12,15 @@ import torch.nn.functional as F
 from typing import Any, List
 import pprint
 
+from llm_planning.processors.strl_processor import STRLProcessor
+
 
 class LLAMA7B(BaseLLMModel):
     MODEL_NAME = "decapoda-research/llama-7b-hf"
 
     def __init__(self,
                  logger: WandbLogger,
-                 device: int = 2,
+                 device: int = 1,
                  name: str = 'llama_7b',
                  max_new_tokens: int = 100) -> None:
         self.max_new_tokens = max_new_tokens
@@ -31,7 +34,7 @@ class LLAMA7B(BaseLLMModel):
         self.model = AutoModelForCausalLM.from_pretrained(
             "decapoda-research/llama-7b-hf",
             torch_dtype=torch.float16,
-            # load_in_8bit=True,
+            load_in_8bit=True,
             # device_map='auto',
             device_map={'': self.device},
         )
@@ -118,8 +121,14 @@ class LLAMA7B(BaseLLMModel):
 if __name__ == "__main__":
     wandb_logger = WandbLogger(log_filename='test_llama')
     model = LLAMA7B(name='llama_7b', logger=wandb_logger)
+    dataset = STRLDataset(logger=wandb_logger, path_to_dataset='/home/akorchemnyi/llm_planning/data3/new_plans_with_args.json')
+    processor = STRLProcessor(wandb_logger)
+    processor.build_system_prompt(dataset)
 
-    inputs = BaseInput(text='test')
-    answer = model.generate(inputs)
+    gen_method = FullPlanGeneration(model, processor, wandb_logger)
 
-    print(answer)
+    task = STRLTask(text = "Move a red apple from the table to the drawer.")
+    predicted_task = gen_method.predict(gt_task=task)
+
+    print(predicted_task.text)
+
